@@ -20,8 +20,10 @@ def main():
     ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
     window = tk.Tk()
     window.title("YouTube Downloader")
-    window.geometry(f"{int(width/6)}x{int(height/6)}")
-    window.resizable(False, False)
+    window.geometry(f"{int(width/3)}x{int(height/3)}")
+    window.minsize(width/3 , height/3)
+    window.maxsize(width/2 , height/2)
+    window.resizable(True,True)
     window.config(bg="#151C23")
     icon = tk.PhotoImage(file=str(BASE_DIR / "icon.png"))
     window.iconphoto(True, icon)
@@ -117,6 +119,8 @@ def main():
             download.config(state='normal')
 
     def settings():
+        Settings.pack_forget()
+
         if Settings.cget("text") == "Settings":
 
             download.pack_forget()
@@ -124,20 +128,20 @@ def main():
             video_label.pack_forget()
             audio_label.pack_forget()
             link_Entry.pack_forget()
+            only_video.pack(pady=3,fill="both", expand=True)
+            only_audio.pack(pady=3,fill="both", expand=True)
+            dir_Change.pack(pady=3,fill="both", expand=True)
+            reset.pack(pady=3,fill="both", expand=True)
+            path_label.pack(pady=2,fill="x", expand=True)
             Settings.config(text="Back")
-            only_video.pack()
-            only_audio.pack()
-            dir_Change.pack()
-            reset.pack()
-            path_label.pack(pady=2)
-
+            Settings.pack(fill="both", expand=True)
         elif Settings.cget("text") == "Back":
-
-            download_size.pack(pady=5)
-            video_label.pack(pady=3)
-            audio_label.pack(pady=3)
-            link_Entry.pack(pady=3)
-            download.pack(pady=3)
+            Settings.pack_forget()
+            download_size.pack(pady=3,fill="both", expand=True)
+            video_label.pack(pady=3,fill="both", expand=True)
+            audio_label.pack(pady=3,fill="both", expand=True)
+            link_Entry.pack(pady=3,fill="x", expand=True)
+            download.pack(pady=3,fill="both", expand=True)
             only_audio.pack_forget()
             only_video.pack_forget()
             reset.pack_forget()
@@ -145,6 +149,7 @@ def main():
             path_label.pack_forget()
             
             Settings.config(text="Settings")
+            Settings.pack(fill="both", expand=True)
 
     def Only_Video():
         nonlocal mode
@@ -214,15 +219,15 @@ def main():
     dir_Change = tk.Button(window, text="Change Directory", command=Dir_Change)
     reset = tk.Button(window, text="Reset", command=settings_Reset)
 
-    download_size.pack(pady=5)
-    video_label.pack(pady=3)
-    audio_label.pack(pady=3)
-    link_Entry.pack(pady=3)
-    download.pack(pady=3)
-    Settings.place(y=200,x=174)
+    download_size.pack(pady=5,fill="both", expand=True)
+    video_label.pack(pady=3,fill="both", expand=True)
+    audio_label.pack(pady=3,fill="both", expand=True)
+    link_Entry.pack(pady=3,fill="x", expand=True)
+    download.pack(pady=3,fill="both", expand=True)
+    Settings.pack(pady=3,fill="both", expand=True)
     
 
-    path_label = tk.Label(window, text=f"Current Directory: {path}",bg="#151C23",fg="white")
+    path_label = tk.Label(window, text=f"Current Directory: {path}",bg="#24272C",fg="white",highlightthickness=1,highlightbackground="gray")
 
     add_ring(download)
     add_ring(Settings)
@@ -230,8 +235,23 @@ def main():
     add_ring(only_video)
     add_ring(dir_Change)
     add_ring(reset)
-    
+
+    def on_resize(event):
+        size = max(8, min(40, event.width // 25))
+        link_Entry.config(font=("FreeSans", size))
+        download_size.config(font=("FreeSans", size))
+        video_label.config(font=("FreeSans", size))
+        audio_label.config(font=("FreeSans", size))
+        link_Entry.config(font=("FreeSans", size))
+        download.config(font=("FreeSans", size))
+        Settings.config(font=("FreeSans", size))
+        only_video.config(font=("FreeSans", size))
+        only_audio.config(font=("FreeSans", size))
+        dir_Change.config(font=("FreeSans", size))
+        reset.config(font=("FreeSans", size))
+        path_label.config(font=("FreeSans", int(size/2)))
     window.icon = icon
+    window.bind("<Configure>", on_resize)
     window.mainloop()
 
 if __name__ == "__main__":

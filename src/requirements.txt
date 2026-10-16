@@ -4,3 +4,4 @@ PyQt5
 Pillow
 pathlib
 pyautogui
+tk
