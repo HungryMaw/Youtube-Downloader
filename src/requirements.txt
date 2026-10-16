@@ -3,3 +3,4 @@ imageio_ffmpeg
 PyQt5
 Pillow
 pathlib
+pyautogui

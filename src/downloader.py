@@ -6,9 +6,11 @@ import imageio_ffmpeg
 from PyQt5.QtWidgets import QApplication, QFileDialog
 from PIL import Image, ImageTk
 from pathlib import Path
+import pyautogui
 
 
 def main():
+    width, height = pyautogui.size()
 # Root Window
     BASE_DIR = Path(__file__).resolve().parent
     BG     = "#24272C" 
@@ -18,7 +20,7 @@ def main():
     ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
     window = tk.Tk()
     window.title("YouTube Downloader")
-    window.geometry("350x250")
+    window.geometry(f"{int(width/6)}x{int(height/6)}")
     window.resizable(False, False)
     window.config(bg="#151C23")
     icon = tk.PhotoImage(file=str(BASE_DIR / "icon.png"))
@@ -217,7 +219,7 @@ def main():
     audio_label.pack(pady=3)
     link_Entry.pack(pady=3)
     download.pack(pady=3)
-    Settings.place(x=260,y=210)
+    Settings.place(y=200,x=174)
     
 
     path_label = tk.Label(window, text=f"Current Directory: {path}",bg="#151C23",fg="white")
