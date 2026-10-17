@@ -2,6 +2,7 @@ import tkinter as tk
 import yt_dlp
 import threading
 import sys
+import time
 import imageio_ffmpeg
 from PyQt5.QtWidgets import QApplication, QFileDialog
 from PIL import Image, ImageTk
@@ -13,16 +14,16 @@ def main():
     width, height = pyautogui.size()
 # Root Window
     BASE_DIR = Path(__file__).resolve().parent
-    BG     = "#24272C" 
-    RING   = "#3daee9"   
+    BG     = "#24272C"
+    RING   = "#3daee9"
     NORMAL = "gray"
     mode = 'both'
     ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
     window = tk.Tk()
     window.title("YouTube Downloader")
-    window.geometry(f"{int(width/3)}x{int(height/3)}")
-    window.minsize(int(width/3) , int(height/3))
-    window.maxsize(int(width/2) , int(height/2))
+    window.geometry(f"{int(width/2)}x{int(height/2)}")
+    window.minsize(width/2.2 , height/2.2)
+    window.maxsize(width/2.1 , height/2.1)
     window.resizable(True,True)
     window.config(bg="#151C23")
     icon = tk.PhotoImage(file=str(BASE_DIR / "icon.png"))
@@ -40,7 +41,7 @@ def main():
 
     def progress_hook(d):
         info = d.get('info_dict', {})
-        vcodec = info.get('vcodec', '')  
+        vcodec = info.get('vcodec', '')
         acodec = info.get('acodec', '')
 
         if vcodec != 'none' and acodec == 'none':
@@ -55,13 +56,13 @@ def main():
 
             if total:
                 new_text=f"{media_type.capitalize()}: {format_bytes(down)} / {format_bytes(total)}"
-            else:        
+            else:
                 new_text=f"{media_type.capitalize()}: {format_bytes(down)} (unknown total size)"
-                
+
             if media_type == 'video':
                 video_label.config(text=new_text)
             elif media_type == 'audio':
-                audio_label.config(text=new_text)  
+                audio_label.config(text=new_text)
 
             window.update_idletasks()
 
@@ -72,10 +73,10 @@ def main():
 
     def video_Downloader():
         nonlocal mode
-        yt_link = link_Entry.get()
+        yt_link = link_Entry.get("1.0", "end-1c")
         if not yt_link:
             download_size.config(text='please enter a valid url')
-            return    
+            return
 
         if mode == 'video':
             fmt = 'bestvideo'
@@ -84,13 +85,13 @@ def main():
         else:
             fmt = 'bestvideo+bestaudio'
         ydl_opts = {
-        
+
         'format': fmt,
         'ffmpeg_location': ffmpeg_path,
         'js_runtimes': {'node': {}},
         'remote_components': ['ejs:github'],
         'paths': {'home': path},
-        'outtmpl': '%(title)s.%(ext)s', 
+        'outtmpl': '%(title)s.%(ext)s',
         'noplaylist': True,
         'cookiesfrombrowser': ('firefox',),
         'compat_opts': ['no-cookies', 'no-youtube-unavailable-errors'],
@@ -98,15 +99,37 @@ def main():
         'overwrites': True,
         'extractor_args': {
                 'youtube': {
-                'player_client': ['default', 'web_embedded'],  
+                'player_client': ['default', 'web_embedded'],
                     }
                 }
             }
-        
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([yt_link])
 
-    def start_download():     
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            try:
+                ydl.download([yt_link])
+            except yt_dlp.utils.DownloadError as exc:
+                msg = str(exc)
+                if "The page needs to be reloaded" in msg:
+                    download_size.config(text='Node.js is not found, please install it at https://nodejs.org/')
+                    file=sys.stderr,
+                    time.sleep(5)
+                    download_size.config(text='Please enter an url!')
+                    sys.exit(1)
+                elif "is not a valid URL" in msg:
+                    download_size.config(text='Please enter a valid URL.')
+                    file=sys.stderr,
+                    time.sleep(5)
+                    download_size.config(text='Please enter an url!')
+                    sys.exit(1)
+                elif "unsupported browser" in msg:
+                    download_size.config(text='Your browser is unsupported.')
+                    file=sys.stderr,
+                    time.sleep(5)
+                    download_size.config(text='Please enter an url!')
+                    sys.exit(1)
+                raise
+
+    def start_download():
             download_size.config(text="Starting...")
             thread = threading.Thread(target=video_Downloader, daemon=True)
             thread.start()
@@ -132,7 +155,7 @@ def main():
             only_audio.pack(pady=3,fill="both", expand=True)
             dir_Change.pack(pady=3,fill="both", expand=True)
             reset.pack(pady=3,fill="both", expand=True)
-            path_label.pack(pady=2,fill="x", expand=True)
+            path_label.pack(pady=3,fill="both", expand=True)
             Settings.config(text="Back")
             Settings.pack(fill="both", expand=True)
         elif Settings.cget("text") == "Back":
@@ -147,7 +170,7 @@ def main():
             reset.pack_forget()
             dir_Change.pack_forget()
             path_label.pack_forget()
-            
+
             Settings.config(text="Settings")
             Settings.pack(fill="both", expand=True)
 
@@ -161,23 +184,23 @@ def main():
             nonlocal mode
             mode = 'audio'
             only_audio.config(text="Only Audio (Complete)")
-            only_video.config(text="Only Video")                     
+            only_video.config(text="Only Video")
 
     def Dir_Change(title="Choose your Directory", start_dir=""):
         nonlocal path, path_label
         app = QApplication.instance() or QApplication(sys.argv)
 
         path = QFileDialog.getExistingDirectory(
-            None,           
-            title,          
-            start_dir,      
+            None,
+            title,
+            start_dir,
             QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks,
         )
         print(type(path))
         print(path)
         path_label.config(text=f"Current Directory: {path}")
         return path or None
-    
+
 
     def settings_Reset():
         nonlocal mode
@@ -206,11 +229,11 @@ def main():
         widget.bind("<FocusOut>", lambda e: update(), add="+")
 
 # Buttons
-
-    download_size = tk.Label(window, text='Please enter an url!',bg="#24272C",fg="white",highlightthickness=1,highlightbackground="gray")
-    video_label = tk.Label(window, text="Video: waiting...", font=("Arial", 9),bg="#24272C",fg="white",highlightthickness=1,highlightbackground="gray")         
+    window_size = width // 2
+    download_size = tk.Label(window, text='Please enter an url!',height=2,bg="#24272C",fg="white",highlightthickness=1,highlightbackground="gray",wraplength=window_size, justify="left")
+    video_label = tk.Label(window, text="Video: waiting...", font=("Arial", 9),bg="#24272C",fg="white",highlightthickness=1,highlightbackground="gray")
     audio_label = tk.Label(window, text="Audio: waiting...", font=("Arial", 9), bg="#24272C",fg="white",highlightthickness=1,highlightbackground="gray")
-    link_Entry = tk.Entry(bg="#24272C",fg="white",highlightthickness=1,highlightbackground="gray")
+    link_Entry = tk.Text(bg="#24272C",fg="white",height=2,highlightthickness=1,highlightbackground="gray")
     download = tk.Button(window, text="Download", command=start_download)
 
     Settings = tk.Button(window, text="Settings", command=settings)
@@ -219,13 +242,13 @@ def main():
     dir_Change = tk.Button(window, text="Change Directory", command=Dir_Change)
     reset = tk.Button(window, text="Reset", command=settings_Reset)
 
-    download_size.pack(pady=5,fill="both", expand=True)
+    download_size.pack(pady=3,fill="both", expand=True)
     video_label.pack(pady=3,fill="both", expand=True)
     audio_label.pack(pady=3,fill="both", expand=True)
-    link_Entry.pack(pady=3,fill="x", expand=True)
+    link_Entry.pack(pady=3,fill="both", expand=True)
     download.pack(pady=3,fill="both", expand=True)
     Settings.pack(pady=3,fill="both", expand=True)
-    
+
 
     path_label = tk.Label(window, text=f"Current Directory: {path}",bg="#24272C",fg="white",highlightthickness=1,highlightbackground="gray")
 
@@ -237,6 +260,10 @@ def main():
     add_ring(reset)
 
     def on_resize(event):
+
+        if event.widget != window:
+            return
+
         size = max(8, min(40, event.width // 25))
         link_Entry.config(font=("FreeSans", size))
         download_size.config(font=("FreeSans", size))
@@ -250,16 +277,19 @@ def main():
         dir_Change.config(font=("FreeSans", size))
         reset.config(font=("FreeSans", size))
         path_label.config(font=("FreeSans", int(size/2)))
+
+
+
     window.icon = icon
     window.bind("<Configure>", on_resize)
     window.mainloop()
 
 if __name__ == "__main__":
    main()
-   
-    
 
- 
-    
-  
- 
+
+
+
+
+
+
