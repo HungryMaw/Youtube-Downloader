@@ -1,7 +1,5 @@
-yt-dlp
-imageio_ffmpeg
+customtkinter
+imageio-ffmpeg
 PyQt5
-Pillow
-pathlib
 pyautogui
-tk
+yt-dlp
