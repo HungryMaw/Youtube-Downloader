@@ -13,22 +13,21 @@ import subprocess
 
 def get_system_hover_color(bg_hex):
     """Fetch the system's native hover/focus accent color."""
-    
 
-<<<<<<< HEAD
+
     kdeglobals = Path.home() / ".config" / "kdeglobals"
     if kdeglobals.exists():
         try:
             cfg = configparser.ConfigParser()
             cfg.read(kdeglobals)
-            
+
             search_keys = [
                 ("Colors:Selection", "BackgroundNormal"),
                 ("Colors:Button", "DecorationFocus"),
                 ("Colors:Window", "DecorationFocus"),
                 ("Colors:Button", "DecorationHover")
             ]
-            
+
             for section, key in search_keys:
                 if cfg.has_section(section) and cfg.has_option(section, key):
                     raw = cfg.get(section, key)
@@ -45,7 +44,7 @@ def get_system_hover_color(bg_hex):
             ["gsettings", "get", "org.gnome.desktop.interface", "accent-color"],
             text=True, stderr=subprocess.DEVNULL
         ).strip().strip("'")
-        
+
         gnome_accents = {
             "blue": "#3584e4", "teal": "#2190a4", "green": "#3a944a",
             "yellow": "#c64600", "orange": "#ed5b00", "red": "#e62d42",
@@ -75,7 +74,7 @@ def get_system_hover_color(bg_hex):
         r, g, b = int(bg_hex[0:2], 16), int(bg_hex[2:4], 16), int(bg_hex[4:6], 16)
         luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
         factor = 1.3 if luminance < 0.5 else 0.8  # Lighten for dark themes, darken for light themes
-        
+
         return "#{:02X}{:02X}{:02X}".format(
             max(0, min(255, int(r * factor))),
             max(0, min(255, int(g * factor))),
@@ -83,7 +82,7 @@ def get_system_hover_color(bg_hex):
         )
     except Exception:
         return "#3daee9"
-    
+
 def get_system_button_colors():
     """Fetch the system's button background/foreground colors (KCalc-style)."""
     kdeglobals = Path.home() / ".config" / "kdeglobals"
@@ -137,7 +136,7 @@ def get_used_system_font():
             cfg = configparser.ConfigParser()
             cfg.read(kdeglobals)
             if cfg.has_option("General", "font"):
-                raw = cfg.get("General", "font")   
+                raw = cfg.get("General", "font")
                 parts = raw.split(",")
                 family = parts[0].strip()
                 size = int(parts[1]) if len(parts) > 1 and parts[1].lstrip("-").isdigit() else 10
@@ -173,28 +172,34 @@ def get_used_system_font():
     return "Sans Serif", 10
 
 system_font_family, system_font_size = get_used_system_font()
-system_bg, system_fg = get_system_button_colors() 
+system_bg, system_fg = get_system_button_colors()
 class Youtube_Downloader:
     def __init__(self, root):
         self.root = root
         width, height = pyautogui.size()
-        
-        
-    # Root Window
-        BASE_DIR = Path(__file__).resolve().parent
+        if getattr(sys, 'frozen', False):
+            # Running as an EXE (PyInstaller extracts to sys._MEIPASS)
+            BASE_DIR = Path(sys._MEIPASS)
+        else:
+            # Running as a normal Python script
+            BASE_DIR = Path(__file__).resolve().parent
+
+    # Now this works perfectly for both the .py and the .exe
+            icon = tk.PhotoImage(file=str(BASE_DIR / "icon.png"))
+            self.root.iconphoto(True, icon)
+            self.root.icon = icon
         BG     = "#24272C"
         RING   = "#3daee9"
         NORMAL = "gray"
         mode = 'both'
-        
+
         ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
         self.root.title("YouTube Downloader")
         self.root.geometry(f"{int(width/2)}x{int(height/2)}")
         self.root.minsize(int(width/2.2) , int(height/2.2))
         self.root.maxsize(int(width/2.1) , int(height/2.1))
         self.root.resizable(True,True)
-        icon = tk.PhotoImage(file=str(BASE_DIR / "icon.png"))
-        self.root.iconphoto(True, icon)
+            
         hover_bg=get_system_hover_color(system_bg)
         path = "~/Downloads"
     # All Main Functions
@@ -257,7 +262,7 @@ class Youtube_Downloader:
             'format': fmt,
             'ffmpeg_location': ffmpeg_path,
             'remote_components': ['ejs:github'],
-            'js_runtimes': {'node': {}},
+            'js_runtimes': {'deno': {}},
             'paths': {'home': path},
             'outtmpl': '%(title)s.%(ext)s',
             'noplaylist': True,
@@ -283,6 +288,12 @@ class Youtube_Downloader:
                         time.sleep(5)
                         download_size.configure(text='Please enter an url!')
                         sys.exit(1)
+                    elif "Requested format is not available. Use --list-formats for a list of available formats" in msg:
+                        download_size.configure(text='Deno is not found, please install it at https://deno.com/')
+                        file=sys.stderr,
+                        time.sleep(5)
+                        download_size.configure(text='Please enter an url!')
+                        sys.exit(1)
                     elif "is not a valid URL" in msg:
                         download_size.configure(text='Please enter a valid URL.')
                         file=sys.stderr,
@@ -296,132 +307,6 @@ class Youtube_Downloader:
                         download_size.configure(text='Please enter an url!')
                         sys.exit(1)
                     raise
-=======
-def main():
-    width, height = pyautogui.size()
-# Root Window
-    BASE_DIR = Path(__file__).resolve().parent
-    BG     = "#24272C"
-    RING   = "#3daee9"
-    NORMAL = "gray"
-    mode = 'both'
-    ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
-    window = tk.Tk()
-    window.title("YouTube Downloader")
-    window.geometry(f"{int(width/2)}x{int(height/2)}")
-    window.minsize(int(width/2.2) , int(height/2.2))
-    window.maxsize(int(width/2.1) , int(height/2.1))
-    window.resizable(True,True)
-    window.config(bg="#151C23")
-    icon = tk.PhotoImage(file=str(BASE_DIR / "icon.png"))
-    window.iconphoto(True, icon)
-    path = "~/Downloads"
-# All Main Functions
-    def format_bytes(b):
-        if b is None:
-            return "Unknown"
-        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
-            if b < 1024.0:
-                return f"{b:.1f} {unit}"
-            b /= 1024.0
-        return f"{b:.1f} PB"
-
-    def progress_hook(d):
-        info = d.get('info_dict', {})
-        vcodec = info.get('vcodec', '')
-        acodec = info.get('acodec', '')
-
-        if vcodec != 'none' and acodec == 'none':
-            media_type = 'video'
-        elif vcodec == 'none' and acodec != 'none':
-                media_type = 'audio'
-
-        if d['status'] == 'downloading':
-            total = d.get('total_bytes') or d.get('total_bytes_estimate')
-            down = d.get('downloaded_bytes', 0)
-            download_size.config(text="Downloading...")
-
-            if total:
-                new_text=f"{media_type.capitalize()}: {format_bytes(down)} / {format_bytes(total)}"
-            else:
-                new_text=f"{media_type.capitalize()}: {format_bytes(down)} (unknown total size)"
-
-            if media_type == 'video':
-                video_label.config(text=new_text)
-            elif media_type == 'audio':
-                audio_label.config(text=new_text)
-
-            window.update_idletasks()
-
-        elif d['status'] == 'finished':
-            download_size.config(text="Download complete!")
-            video_label.config(text="Video: waiting...")
-            audio_label.config(text="Audio: waiting...")
-
-    def video_Downloader():
-        nonlocal mode
-        yt_link = link_Entry.get("1.0", "end-1c")
-        if not yt_link:
-            download_size.config(text='please enter a valid url')
-            return
-
-        if mode == 'video':
-            fmt = 'bestvideo'
-        elif mode == 'audio':
-            fmt = 'bestaudio'
-        else:
-            fmt = 'bestvideo+bestaudio'
-        ydl_opts = {
-
-        'format': fmt,
-        'ffmpeg_location': ffmpeg_path,
-        'js_runtimes': {'node': {}},
-        'remote_components': ['ejs:github'],
-        'paths': {'home': path},
-        'outtmpl': '%(title)s.%(ext)s',
-        'noplaylist': True,
-        'cookiesfrombrowser': ('firefox',),
-        'compat_opts': ['no-cookies', 'no-youtube-unavailable-errors'],
-        'progress_hooks': [progress_hook],
-        'overwrites': True,
-        'extractor_args': {
-                'youtube': {
-                'player_client': ['default', 'web_embedded'],
-                    }
-                }
-            }
-
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            try:
-                ydl.download([yt_link])
-            except yt_dlp.utils.DownloadError as exc:
-                msg = str(exc)
-                if "The page needs to be reloaded" in msg:
-                    download_size.config(text='Node.js is not found, please install it at https://nodejs.org/')
-                    file=sys.stderr,
-                    time.sleep(5)
-                    download_size.config(text='Please enter an url!')
-                    sys.exit(1)
-                elif "is not a valid URL" in msg:
-                    download_size.config(text='Please enter a valid URL.')
-                    file=sys.stderr,
-                    time.sleep(5)
-                    download_size.config(text='Please enter an url!')
-                    sys.exit(1)
-                elif "unsupported browser" in msg:
-                    download_size.config(text='Your browser is unsupported.')
-                    file=sys.stderr,
-                    time.sleep(5)
-                    download_size.config(text='Please enter an url!')
-                    sys.exit(1)
-                raise
-
-    def start_download():
-            download_size.config(text="Starting...")
-            thread = threading.Thread(target=video_Downloader, daemon=True)
-            thread.start()
-            check_thread(thread)
->>>>>>> 3dc26a40177e423b328709214c3b2baf1b427739
 
         def start_download():
                 download_size.configure(text="Starting...")
@@ -444,38 +329,8 @@ def main():
             label.pack(fill="both", expand=True, padx=6, pady=2)
             return frame, label
 
-<<<<<<< HEAD
         def settings():
             Settings.pack_forget()
-=======
-            download.pack_forget()
-            download_size.pack_forget()
-            video_label.pack_forget()
-            audio_label.pack_forget()
-            link_Entry.pack_forget()
-            only_video.pack(pady=3,fill="both", expand=True)
-            only_audio.pack(pady=3,fill="both", expand=True)
-            dir_Change.pack(pady=3,fill="both", expand=True)
-            reset.pack(pady=3,fill="both", expand=True)
-            path_label.pack(pady=3,fill="both", expand=True)
-            Settings.config(text="Back")
-            Settings.pack(fill="both", expand=True)
-        elif Settings.cget("text") == "Back":
-            Settings.pack_forget()
-            download_size.pack(pady=3,fill="both", expand=True)
-            video_label.pack(pady=3,fill="both", expand=True)
-            audio_label.pack(pady=3,fill="both", expand=True)
-            link_Entry.pack(pady=3,fill="x", expand=True)
-            download.pack(pady=3,fill="both", expand=True)
-            only_audio.pack_forget()
-            only_video.pack_forget()
-            reset.pack_forget()
-            dir_Change.pack_forget()
-            path_label.pack_forget()
-
-            Settings.config(text="Settings")
-            Settings.pack(fill="both", expand=True)
->>>>>>> 3dc26a40177e423b328709214c3b2baf1b427739
 
             if Settings.cget("text") == "Settings":
                 download.pack_forget()
@@ -507,15 +362,9 @@ def main():
 
         def Only_Video():
             nonlocal mode
-<<<<<<< HEAD
             mode = 'video'
             only_video.configure(text="Only Video (Complete)")
             only_audio.configure(text="Only Audio")
-=======
-            mode = 'audio'
-            only_audio.config(text="Only Audio (Complete)")
-            only_video.config(text="Only Video")
->>>>>>> 3dc26a40177e423b328709214c3b2baf1b427739
 
         def Only_Audio():
                 nonlocal mode
@@ -523,7 +372,6 @@ def main():
                 only_audio.configure(text="Only Audio (Complete)")
                 only_video.configure(text="Only Video")
 
-<<<<<<< HEAD
         def Dir_Change(title="Choose your Directory", start_dir=""):
             nonlocal path, path_label
             app = QApplication.instance() or QApplication(sys.argv)
@@ -557,19 +405,6 @@ def main():
         )
         video_label_frame, video_label = make_bordered_label(self.root, text="Video: waiting...")
         audio_label_frame, audio_label = make_bordered_label(self.root, text="Audio: waiting...")
-=======
-        path = QFileDialog.getExistingDirectory(
-            None,
-            title,
-            start_dir,
-            QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks,
-        )
-        print(type(path))
-        print(path)
-        path_label.config(text=f"Current Directory: {path}")
-        return path or None
-
->>>>>>> 3dc26a40177e423b328709214c3b2baf1b427739
 
         link_Entry = ctk.CTkTextbox(
             self.root, text_color=system_fg,fg_color="transparent", height=28,
@@ -582,7 +417,6 @@ def main():
         dir_Change = ctk.CTkButton(self.root, text="Change Directory",text_color=system_fg, command=Dir_Change,      font=(system_font_family, system_font_size),fg_color="transparent")
         reset      = ctk.CTkButton(self.root, text="Reset",text_color=system_fg,           command=settings_Reset,  font=(system_font_family, system_font_size),fg_color="transparent")
 
-<<<<<<< HEAD
         download_size_frame.pack(pady=3, fill="both", expand=True)
         video_label_frame.pack(pady=3, fill="both", expand=True)
         audio_label_frame.pack(pady=3, fill="both", expand=True)
@@ -591,15 +425,6 @@ def main():
         Settings.pack(pady=3, fill="both", expand=True)
 
         path_label_frame, path_label = make_bordered_label(self.root, text=f"Current Directory: {path}")
-=======
-# Buttons
-    window_size = width // 2
-    download_size = tk.Label(window, text='Please enter an url!',height=2,bg="#24272C",fg="white",highlightthickness=1,highlightbackground="gray",wraplength=window_size, justify="left")
-    video_label = tk.Label(window, text="Video: waiting...", font=("Arial", 9),bg="#24272C",fg="white",highlightthickness=1,highlightbackground="gray")
-    audio_label = tk.Label(window, text="Audio: waiting...", font=("Arial", 9), bg="#24272C",fg="white",highlightthickness=1,highlightbackground="gray")
-    link_Entry = tk.Text(bg="#24272C",fg="white",height=2,highlightthickness=1,highlightbackground="gray")
-    download = tk.Button(window, text="Download", command=start_download)
->>>>>>> 3dc26a40177e423b328709214c3b2baf1b427739
 
         add_ring(download)
         add_ring(Settings)
@@ -608,17 +433,7 @@ def main():
         add_ring(dir_Change)
         add_ring(reset)
 
-<<<<<<< HEAD
         all_buttons = [download, Settings, only_audio, only_video, dir_Change, reset]
-=======
-    download_size.pack(pady=3,fill="both", expand=True)
-    video_label.pack(pady=3,fill="both", expand=True)
-    audio_label.pack(pady=3,fill="both", expand=True)
-    link_Entry.pack(pady=3,fill="both", expand=True)
-    download.pack(pady=3,fill="both", expand=True)
-    Settings.pack(pady=3,fill="both", expand=True)
-
->>>>>>> 3dc26a40177e423b328709214c3b2baf1b427739
 
         def on_resize(event):
             global system_font_size
@@ -638,52 +453,14 @@ def main():
             reset.configure(font=(system_font_family, system_font_size))
             path_label.configure(font=(system_font_family, int(system_font_size / 2)))
 
-<<<<<<< HEAD
             # ← NEW: wrap the status label to the real inner width, minus padding
-=======
-    def on_resize(event):
-
-        if event.widget != window:
-            return
-
-        size = max(8, min(40, event.width // 25))
-        link_Entry.config(font=("FreeSans", size))
-        download_size.config(font=("FreeSans", size))
-        video_label.config(font=("FreeSans", size))
-        audio_label.config(font=("FreeSans", size))
-        link_Entry.config(font=("FreeSans", size))
-        download.config(font=("FreeSans", size))
-        Settings.config(font=("FreeSans", size))
-        only_video.config(font=("FreeSans", size))
-        only_audio.config(font=("FreeSans", size))
-        dir_Change.config(font=("FreeSans", size))
-        reset.config(font=("FreeSans", size))
-        path_label.config(font=("FreeSans", int(size/2)))
 
 
 
-    window.icon = icon
-    window.bind("<Configure>", on_resize)
-    window.mainloop()
->>>>>>> 3dc26a40177e423b328709214c3b2baf1b427739
-
-
-
-        self.root.icon = icon
+        
         self.root.bind("<Configure>", on_resize)
- 
+
 if __name__ == "__main__":
-<<<<<<< HEAD
     root = ctk.CTk(fg_color=system_bg)
     app = Youtube_Downloader(root)
     root.mainloop()
-=======
-   main()
-
-
-
-
-
-
-
->>>>>>> 3dc26a40177e423b328709214c3b2baf1b427739
