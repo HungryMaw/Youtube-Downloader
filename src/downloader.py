@@ -10,24 +10,75 @@ from PyQt5.QtWidgets import QApplication, QFileDialog
 import pyautogui
 import configparser
 import subprocess
+import shutil
+
+def get_default_browser():
+    if sys.platform == "linux":
+        try:
+        # Get the .desktop file name
+            out = subprocess.check_output(
+                ["xdg-settings", "get", "default-web-browser"],
+                text=True, stderr=subprocess.DEVNULL
+            ).strip().lower()
+            if "firefox" in out: return "firefox"
+            if "chrome" in out: return "chrome"
+            if "chromium" in out: return "chromium"
+            if "brave" in out: return "brave"
+            if "edge" in out: return "edge"
+            if "opera" in out: return "opera"
+            if "vivaldi" in out: return "vivaldi"
+
+        except Exception:
+            pass
+
+        if shutil.which("firefox"): return "firefox"
+        if shutil.which("google-chrome"): return "chrome"
+        if shutil.which("chromium"): return "chromium"
+
+    elif sys.platform == "win32":
+        try:
+            import winreg
+            # Read the registry key where Windows stores default apps
+            key_path = r"Software\Microsoft\Windows\Shell\Associations\UrlAssociations\http\UserChoice"
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path) as key:
+                prog_id, _ = winreg.QueryValueEx(key, "ProgId")
+                prog_id = prog_id.lower()
+                
+                if "firefox" in prog_id: return "firefox"
+                if "chrome" in prog_id: return "chrome"
+                if "edge" in prog_id: return "edge"
+                if "brave" in prog_id: return "brave"
+                if "opera" in prog_id: return "opera"
+                if "vivaldi" in prog_id: return "vivaldi"
+        except Exception:
+            pass
+
+    # --- FALLBACKS (Check if installed in PATH) ---
+        if shutil.which("firefox"): return "firefox"
+        if shutil.which("google-chrome") or shutil.which("chrome"): return "chrome"
+        if shutil.which("chromium"): return "chromium"
+        if shutil.which("msedge"): return "edge"
+
+    return "firefox"
+
 
 def get_system_hover_color(bg_hex):
     """Fetch the system's native hover/focus accent color."""
-
+    
 
     kdeglobals = Path.home() / ".config" / "kdeglobals"
     if kdeglobals.exists():
         try:
             cfg = configparser.ConfigParser()
             cfg.read(kdeglobals)
-
+            
             search_keys = [
                 ("Colors:Selection", "BackgroundNormal"),
                 ("Colors:Button", "DecorationFocus"),
                 ("Colors:Window", "DecorationFocus"),
                 ("Colors:Button", "DecorationHover")
             ]
-
+            
             for section, key in search_keys:
                 if cfg.has_section(section) and cfg.has_option(section, key):
                     raw = cfg.get(section, key)
@@ -44,7 +95,7 @@ def get_system_hover_color(bg_hex):
             ["gsettings", "get", "org.gnome.desktop.interface", "accent-color"],
             text=True, stderr=subprocess.DEVNULL
         ).strip().strip("'")
-
+        
         gnome_accents = {
             "blue": "#3584e4", "teal": "#2190a4", "green": "#3a944a",
             "yellow": "#c64600", "orange": "#ed5b00", "red": "#e62d42",
@@ -74,7 +125,7 @@ def get_system_hover_color(bg_hex):
         r, g, b = int(bg_hex[0:2], 16), int(bg_hex[2:4], 16), int(bg_hex[4:6], 16)
         luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
         factor = 1.3 if luminance < 0.5 else 0.8  # Lighten for dark themes, darken for light themes
-
+        
         return "#{:02X}{:02X}{:02X}".format(
             max(0, min(255, int(r * factor))),
             max(0, min(255, int(g * factor))),
@@ -82,7 +133,7 @@ def get_system_hover_color(bg_hex):
         )
     except Exception:
         return "#3daee9"
-
+    
 def get_system_button_colors():
     """Fetch the system's button background/foreground colors (KCalc-style)."""
     kdeglobals = Path.home() / ".config" / "kdeglobals"
@@ -136,7 +187,7 @@ def get_used_system_font():
             cfg = configparser.ConfigParser()
             cfg.read(kdeglobals)
             if cfg.has_option("General", "font"):
-                raw = cfg.get("General", "font")
+                raw = cfg.get("General", "font")   
                 parts = raw.split(",")
                 family = parts[0].strip()
                 size = int(parts[1]) if len(parts) > 1 and parts[1].lstrip("-").isdigit() else 10
@@ -172,34 +223,32 @@ def get_used_system_font():
     return "Sans Serif", 10
 
 system_font_family, system_font_size = get_used_system_font()
+print(f"Detected System Colours: {system_font_family}, System Size: {system_font_size}") 
 system_bg, system_fg = get_system_button_colors()
+print(f"Detected System Colours: {system_bg, system_fg}") 
 class Youtube_Downloader:
     def __init__(self, root):
         self.root = root
         width, height = pyautogui.size()
-        if getattr(sys, 'frozen', False):
-            # Running as an EXE (PyInstaller extracts to sys._MEIPASS)
-            BASE_DIR = Path(sys._MEIPASS)
-        else:
-            # Running as a normal Python script
-            BASE_DIR = Path(__file__).resolve().parent
-
-    # Now this works perfectly for both the .py and the .exe
-            icon = tk.PhotoImage(file=str(BASE_DIR / "icon.png"))
-            self.root.iconphoto(True, icon)
-            self.root.icon = icon
+        
+        
+    # Root Window
+        BASE_DIR = Path(__file__).resolve().parent
         BG     = "#24272C"
         RING   = "#3daee9"
         NORMAL = "gray"
         mode = 'both'
-
+        browser_name = get_default_browser()
+        print(f"Detected Browser: {browser_name}")
+        
         ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
         self.root.title("YouTube Downloader")
         self.root.geometry(f"{int(width/2)}x{int(height/2)}")
         self.root.minsize(int(width/2.2) , int(height/2.2))
         self.root.maxsize(int(width/2.1) , int(height/2.1))
         self.root.resizable(True,True)
-            
+        icon = tk.PhotoImage(file=str(BASE_DIR / "icon.png"))
+        self.root.iconphoto(True, icon)
         hover_bg=get_system_hover_color(system_bg)
         path = "~/Downloads"
     # All Main Functions
@@ -262,11 +311,10 @@ class Youtube_Downloader:
             'format': fmt,
             'ffmpeg_location': ffmpeg_path,
             'remote_components': ['ejs:github'],
-            'js_runtimes': {'deno': {}},
             'paths': {'home': path},
             'outtmpl': '%(title)s.%(ext)s',
             'noplaylist': True,
-            'cookiesfrombrowser': ('firefox',),
+            'cookiesfrombrowser': (browser_name,),
             'compat_opts': ['no-cookies', 'no-youtube-unavailable-errors'],
             'progress_hooks': [progress_hook],
             'overwrites': True,
@@ -457,9 +505,9 @@ class Youtube_Downloader:
 
 
 
-        
+        self.root.icon = icon
         self.root.bind("<Configure>", on_resize)
-
+ 
 if __name__ == "__main__":
     root = ctk.CTk(fg_color=system_bg)
     app = Youtube_Downloader(root)
