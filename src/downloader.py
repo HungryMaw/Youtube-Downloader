@@ -61,185 +61,292 @@ def get_default_browser():
 
     return "firefox"
 
-
 def get_system_hover_color(bg_hex):
-    """Fetch the system's native hover/focus accent color."""
-    
-
-    kdeglobals = Path.home() / ".config" / "kdeglobals"
-    if kdeglobals.exists():
+    if sys.platform == "win32":
         try:
-            cfg = configparser.ConfigParser()
-            cfg.read(kdeglobals)
+            import winreg
+            # Read the Windows DWM (Desktop Window Manager) accent color
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\DWM")
+            color_int, _ = winreg.QueryValueEx(key, "ColorizationColor")
             
-            search_keys = [
-                ("Colors:Selection", "BackgroundNormal"),
-                ("Colors:Button", "DecorationFocus"),
-                ("Colors:Window", "DecorationFocus"),
-                ("Colors:Button", "DecorationHover")
-            ]
+            # Convert the ARGB integer (e.g., 0xC40078D7) to a Hex string (e.g., #0078D7)
+            # The & 0x00FFFFFF drops the alpha/transparency channel at the start
+            hex_color = f"#{color_int & 0x00FFFFFF:06x}"
             
-            for section, key in search_keys:
-                if cfg.has_section(section) and cfg.has_option(section, key):
-                    raw = cfg.get(section, key)
-                    parts = raw.split(",")
-                    if len(parts) == 3:
-                        hex_color = "#" + "".join(f"{int(x):02X}" for x in parts)
-                        if hex_color not in ("#000000", "#FFFFFF"):
-                            return hex_color
-        except Exception as e:
-            print(f"KDE read error: {e}")
-
-    try:
-        out = subprocess.check_output(
-            ["gsettings", "get", "org.gnome.desktop.interface", "accent-color"],
-            text=True, stderr=subprocess.DEVNULL
-        ).strip().strip("'")
-        
-        gnome_accents = {
-            "blue": "#3584e4", "teal": "#2190a4", "green": "#3a944a",
-            "yellow": "#c64600", "orange": "#ed5b00", "red": "#e62d42",
-            "pink": "#d56199", "purple": "#9141ac", "slate": "#6f8396"
-        }
-        if out in gnome_accents:
-            print(f"Found GNOME accent color: {out}")
-            return gnome_accents[out]
-    except Exception:
-        pass
-
-    try:
-        from PyQt5.QtGui import QPalette
-        app = QApplication.instance() or QApplication(sys.argv)
-        highlight = app.palette().color(QPalette.Highlight).name()
-        # Qt might return gray if the platform theme plugin isn't loaded
-        if highlight not in ("#000000", "#FFFFFF", "#efefef", "#d9d9d9"):
-            print(f"Found color via Qt QPalette: {highlight}")
-            return highlight
-    except Exception:
-        pass
-
-
-    print("Falling back to shaded background...")
-    try:
-        bg_hex = bg_hex.lstrip('#')
-        r, g, b = int(bg_hex[0:2], 16), int(bg_hex[2:4], 16), int(bg_hex[4:6], 16)
-        luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
-        factor = 1.3 if luminance < 0.5 else 0.8  # Lighten for dark themes, darken for light themes
-        
-        return "#{:02X}{:02X}{:02X}".format(
-            max(0, min(255, int(r * factor))),
-            max(0, min(255, int(g * factor))),
-            max(0, min(255, int(b * factor)))
-        )
-    except Exception:
-        return "#3daee9"
+            if hex_color not in ("#000000", "#FFFFFF"):
+                return hex_color
+        except Exception:
+            pass
+            
+        # Fallback: Windows default blue if the accent color can't be read
+        return "#0078D7"
     
-def get_system_button_colors():
-    """Fetch the system's button background/foreground colors (KCalc-style)."""
-    kdeglobals = Path.home() / ".config" / "kdeglobals"
-    if kdeglobals.exists():
+    elif sys.platform == "linux":
+        kdeglobals = Path.home() / ".config" / "kdeglobals"
+        if kdeglobals.exists():
+            try:
+                cfg = configparser.ConfigParser()
+                cfg.read(kdeglobals)
+                
+                search_keys = [
+                    ("Colors:Selection", "BackgroundNormal"),
+                    ("Colors:Button", "DecorationFocus"),
+                    ("Colors:Window", "DecorationFocus"),
+                    ("Colors:Button", "DecorationHover")
+                ]
+                
+                for section, key in search_keys:
+                    if cfg.has_section(section) and cfg.has_option(section, key):
+                        raw = cfg.get(section, key)
+                        parts = raw.split(",")
+                        if len(parts) == 3:
+                            hex_color = "#" + "".join(f"{int(x):02X}" for x in parts)
+                            if hex_color not in ("#000000", "#FFFFFF"):
+                                return hex_color
+            except Exception as e:
+                print(f"KDE read error: {e}")
+
         try:
-            cfg = configparser.ConfigParser()
-            cfg.read(kdeglobals)
-            if cfg.has_section("Colors:Button"):
-                bg_raw = cfg.get("Colors:Button", "BackgroundNormal", fallback="")
-                fg_raw = cfg.get("Colors:Button", "ForegroundNormal", fallback="")
-                if bg_raw and fg_raw:
-                    bg_hex = "#" + "".join(f"{int(x):02X}" for x in bg_raw.split(","))
-                    fg_hex = "#" + "".join(f"{int(x):02X}" for x in fg_raw.split(","))
-                    return bg_hex, fg_hex
+            out = subprocess.check_output(
+                ["gsettings", "get", "org.gnome.desktop.interface", "accent-color"],
+                text=True, stderr=subprocess.DEVNULL
+            ).strip().strip("'")
+            
+            gnome_accents = {
+                "blue": "#3584e4", "teal": "#2190a4", "green": "#3a944a",
+                "yellow": "#c64600", "orange": "#ed5b00", "red": "#e62d42",
+                "pink": "#d56199", "purple": "#9141ac", "slate": "#6f8396"
+            }
+            if out in gnome_accents:
+                print(f"Found GNOME accent color: {out}")
+                return gnome_accents[out]
         except Exception:
             pass
 
-    try:
-        out = subprocess.check_output(
-            ["gsettings", "get", "org.gnome.desktop.interface", "gtk-color-scheme"],
-            text=True, stderr=subprocess.DEVNULL
-        ).strip().strip("'")
-        scheme = dict(item.split(":") for item in out.split(";") if ":" in item)
-        if "fbutton_bg_color" in scheme and "fbutton_fg_color" in scheme:
-            return scheme["fbutton_bg_color"], scheme["fbutton_fg_color"]
-    except Exception:
-        pass
+        try:
+            from PyQt5.QtGui import QPalette
+            app = QApplication.instance() or QApplication(sys.argv)
+            highlight = app.palette().color(QPalette.Highlight).name()
+            # Qt might return gray if the platform theme plugin isn't loaded
+            if highlight not in ("#000000", "#FFFFFF", "#efefef", "#d9d9d9"):
+                print(f"Found color via Qt QPalette: {highlight}")
+                return highlight
+        except Exception:
+            pass
 
-    try:
-        from PyQt5.QtGui import QPalette
-        app = QApplication.instance() or QApplication(sys.argv)
-        palette = app.palette()
-        bg = palette.color(QPalette.Button).name()
-        fg = palette.color(QPalette.ButtonText).name()
-        hg = palette.color(QPalette.HoverText).name()
-        return bg, fg
-    except Exception:
-        pass
 
-    return "#24272C", "white"
+        print("Falling back to shaded background...")
+        try:
+            bg_hex = bg_hex.lstrip('#')
+            r, g, b = int(bg_hex[0:2], 16), int(bg_hex[2:4], 16), int(bg_hex[4:6], 16)
+            luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+            factor = 1.3 if luminance < 0.5 else 0.8  # Lighten for dark themes, darken for light themes
+            
+            return "#{:02X}{:02X}{:02X}".format(
+                max(0, min(255, int(r * factor))),
+                max(0, min(255, int(g * factor))),
+                max(0, min(255, int(b * factor)))
+            )
+        except Exception:
+            return "#3daee9"
+    
+def get_system_button_colors():
+        
+    if sys.platform == "win32":
+        import winreg
+        try:
+            # Check if Windows is in Dark Mode or Light Mode
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize")
+            is_light, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
+            
+            if is_light:
+                return "#F3F3F3", "#000000"  # Windows Light Mode colors
+            else:
+                return "#202020", "#FFFFFF"  # Windows Dark Mode colors
+        except Exception:
+            pass
+        
+    elif sys.platform == "linux":
+        kdeglobals = Path.home() / ".config" / "kdeglobals"
+        if kdeglobals.exists():
+            try:
+                cfg = configparser.ConfigParser()
+                cfg.read(kdeglobals)
+                if cfg.has_section("Colors:Button"):
+                    bg_raw = cfg.get("Colors:Button", "BackgroundNormal", fallback="")
+                    fg_raw = cfg.get("Colors:Button", "ForegroundNormal", fallback="")
+                    if bg_raw and fg_raw:
+                        bg_hex = "#" + "".join(f"{int(x):02X}" for x in bg_raw.split(","))
+                        fg_hex = "#" + "".join(f"{int(x):02X}" for x in fg_raw.split(","))
+                        return bg_hex, fg_hex
+            except Exception:
+                pass
+
+        try:
+            out = subprocess.check_output(
+                ["gsettings", "get", "org.gnome.desktop.interface", "gtk-color-scheme"],
+                text=True, stderr=subprocess.DEVNULL
+            ).strip().strip("'")
+            scheme = dict(item.split(":") for item in out.split(";") if ":" in item)
+            if "fbutton_bg_color" in scheme and "fbutton_fg_color" in scheme:
+                return scheme["fbutton_bg_color"], scheme["fbutton_fg_color"]
+        except Exception:
+            pass
+
+        try:
+            from PyQt5.QtGui import QPalette
+            app = QApplication.instance() or QApplication(sys.argv)
+            palette = app.palette()
+            bg = palette.color(QPalette.Button).name()
+            fg = palette.color(QPalette.ButtonText).name()
+            hg = palette.color(QPalette.HoverText).name()
+            return bg, fg, hg
+        except Exception:
+            pass
+
+        return "#24272C", "white"
 
 def get_used_system_font():
     """Read the ACTUAL desktop UI font (the one KCalc would use).
 
     Order: KDE kdeglobals -> GNOME gsettings -> fontconfig -> fallback.
     """
-
-    kdeglobals = Path.home() / ".config" / "kdeglobals"
-    if kdeglobals.exists():
+    if sys.platform == "win32":
+        import ctypes
         try:
-            cfg = configparser.ConfigParser()
-            cfg.read(kdeglobals)
-            if cfg.has_option("General", "font"):
-                raw = cfg.get("General", "font")   
-                parts = raw.split(",")
-                family = parts[0].strip()
-                size = int(parts[1]) if len(parts) > 1 and parts[1].lstrip("-").isdigit() else 10
-                if family:
-                    return family, size
+            from ctypes import wintypes
+
+            # Define the Windows LOGFONT structure
+            class LOGFONTW(ctypes.Structure):
+                _fields_ = [
+                    ("lfHeight", ctypes.c_long),
+                    ("lfWidth", ctypes.c_long),
+                    ("lfEscapement", ctypes.c_long),
+                    ("lfOrientation", ctypes.c_long),
+                    ("lfWeight", ctypes.c_long),
+                    ("lfItalic", ctypes.c_byte),
+                    ("lfUnderline", ctypes.c_byte),
+                    ("lfStrikeOut", ctypes.c_byte),
+                    ("lfCharSet", ctypes.c_byte),
+                    ("lfOutPrecision", ctypes.c_byte),
+                    ("lfClipPrecision", ctypes.c_byte),
+                    ("lfQuality", ctypes.c_byte),
+                    ("lfPitchAndFamily", ctypes.c_byte),
+                    ("lfFaceName", ctypes.c_wchar * 32)
+                ]
+
+            # Define the Windows NONCLIENTMETRICS structure
+            class NONCLIENTMETRICSW(ctypes.Structure):
+                _fields_ = [
+                    ("cbSize", wintypes.UINT),
+                    ("iBorderWidth", ctypes.c_int),
+                    ("iScrollWidth", ctypes.c_int),
+                    ("iScrollHeight", ctypes.c_int),
+                    ("iCaptionWidth", ctypes.c_int),
+                    ("iCaptionHeight", ctypes.c_int),
+                    ("lfCaptionFont", LOGFONTW),
+                    ("iSmCaptionWidth", ctypes.c_int),
+                    ("iSmCaptionHeight", ctypes.c_int),
+                    ("lfSmCaptionFont", LOGFONTW),
+                    ("iMenuWidth", ctypes.c_int),
+                    ("iMenuHeight", ctypes.c_int),
+                    ("lfMenuFont", LOGFONTW),
+                    ("lfStatusFont", LOGFONTW),
+                    ("lfMessageFont", LOGFONTW)
+                ]
+
+            ncm = NONCLIENTMETRICSW()
+            ncm.cbSize = ctypes.sizeof(NONCLIENTMETRICSW)
+            
+            # SPI_GETNONCLIENTMETRICS = 0x0029
+            if ctypes.windll.user32.SystemParametersInfoW(0x0029, ncm.cbSize, ctypes.byref(ncm), 0):
+                font = ncm.lfMessageFont
+                family = font.lfFaceName
+                
+                # Windows returns height in pixels. To convert to standard points:
+                # 1 point = 4/3 pixels at 96 DPI (standard scaling)
+                pt_size = int(abs(font.lfHeight) * 72 / 96)
+                
+                # Ensure the size is reasonable (Windows sometimes returns 0)
+                if pt_size <= 0:
+                    pt_size = 9
+                    
+                return family, pt_size
+        except Exception as e:
+            print(f"Windows font read error: {e}")
+            
+        return "Segoe UI", 10
+    elif sys.platform == "linux":
+        kdeglobals = Path.home() / ".config" / "kdeglobals"
+        if kdeglobals.exists():
+            try:
+                cfg = configparser.ConfigParser()
+                cfg.read(kdeglobals)
+                if cfg.has_option("General", "font"):
+                    raw = cfg.get("General", "font")   
+                    parts = raw.split(",")
+                    family = parts[0].strip()
+                    size = int(parts[1]) if len(parts) > 1 and parts[1].lstrip("-").isdigit() else 10
+                    if family:
+                        return family, size
+            except Exception:
+                pass
+
+
+        try:
+            out = subprocess.check_output(
+                ["gsettings", "get", "org.gnome.desktop.interface", "font-name"],
+                text=True, stderr=subprocess.DEVNULL
+            ).strip().strip("'")
+            parts = out.rsplit(" ", 1)
+            if len(parts) == 2 and parts[1].isdigit() and parts[0]:
+                return parts[0], int(parts[1])
+            if out:
+                return out, 10
         except Exception:
             pass
 
 
-    try:
-        out = subprocess.check_output(
-            ["gsettings", "get", "org.gnome.desktop.interface", "font-name"],
-            text=True, stderr=subprocess.DEVNULL
-        ).strip().strip("'")
-        parts = out.rsplit(" ", 1)
-        if len(parts) == 2 and parts[1].isdigit() and parts[0]:
-            return parts[0], int(parts[1])
-        if out:
-            return out, 10
-    except Exception:
-        pass
+        try:
+            out = subprocess.check_output(
+                ["fc-match", "-f", "%{family}", "sans-serif"],
+                text=True, stderr=subprocess.DEVNULL
+            ).strip()
+            return out.split(",")[0], 10
+        except Exception:
+            pass
 
-
-    try:
-        out = subprocess.check_output(
-            ["fc-match", "-f", "%{family}", "sans-serif"],
-            text=True, stderr=subprocess.DEVNULL
-        ).strip()
-        return out.split(",")[0], 10
-    except Exception:
-        pass
-
-    return "Sans Serif", 10
+        return "Sans Serif", 10
 
 system_font_family, system_font_size = get_used_system_font()
-print(f"Detected System Colours: {system_font_family}, System Size: {system_font_size}") 
+print(f"Detected System Text: {system_font_family}, System Size: {system_font_size}") 
+
 system_bg, system_fg = get_system_button_colors()
 print(f"Detected System Colours: {system_bg, system_fg}") 
 class Youtube_Downloader:
     def __init__(self, root):
         self.root = root
         width, height = pyautogui.size()
+                # 1. Get the correct path
+        if getattr(sys, 'frozen', False):
+            BASE_DIR = Path(sys._MEIPASS)
+        else:
+            BASE_DIR = Path(__file__).resolve().parent
+
+        # 2. Set the icon natively
+        if sys.platform == "win32":
+            self.root.iconbitmap(str(BASE_DIR / "icon.ico"))
+        else:
+            # Linux and macOS natively use .png
+            icon = tk.PhotoImage(file=str(BASE_DIR / "icon.png"))
+            self.root.iconphoto(True, icon)
+            self.root.icon = icon
         
-        
-    # Root Window
-        BASE_DIR = Path(__file__).resolve().parent
-        BG     = "#24272C"
-        RING   = "#3daee9"
         NORMAL = "gray"
         mode = 'both'
         browser_name = get_default_browser()
         print(f"Detected Browser: {browser_name}")
+        
         
         ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
         self.root.title("YouTube Downloader")
@@ -247,9 +354,8 @@ class Youtube_Downloader:
         self.root.minsize(int(width/2.2) , int(height/2.2))
         self.root.maxsize(int(width/2.1) , int(height/2.1))
         self.root.resizable(True,True)
-        icon = tk.PhotoImage(file=str(BASE_DIR / "icon.png"))
-        self.root.iconphoto(True, icon)
         hover_bg=get_system_hover_color(system_bg)
+        print(f"hover color: {hover_bg}")
         path = "~/Downloads"
     # All Main Functions
         def format_bytes(b):
@@ -505,10 +611,10 @@ class Youtube_Downloader:
 
 
 
-        self.root.icon = icon
         self.root.bind("<Configure>", on_resize)
  
 if __name__ == "__main__":
     root = ctk.CTk(fg_color=system_bg)
     app = Youtube_Downloader(root)
     root.mainloop()
+    

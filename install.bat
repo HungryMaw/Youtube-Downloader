@@ -70,7 +70,7 @@ echo Installing PyInstaller
 cd /d "%DIR%"
 echo Compiling executable. This may take a few minutes.
 
-"%PYTHON_BIN%" -m PyInstaller --noconsole --onefile --icon="%DIR%\src\icon.ico" --add-data "%DIR%\src\icon.png;." --collect-all customtkinter --collect-all pyautogui "%DIR%\src\downloader.py"
+"%PYTHON_BIN%" -m PyInstaller --noconsole --onefile --icon="%DIR%\src\icon.ico" --add-data "%DIR%\src\icon.png;." --add-data "%DIR%\src\icon.ico;." --collect-all customtkinter --collect-all pyautogui "%DIR%\src\downloader.py"
 
 if !errorlevel! neq 0 (
     echo.
